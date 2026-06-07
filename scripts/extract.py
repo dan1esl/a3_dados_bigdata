@@ -39,9 +39,3 @@ def extract_all():
     games = extract_games_data()
     print("Dados extraidos com sucesso.")
     return twitch, esports, games
-
-if __name__ == "__main__":
-    df_twitch, df_esports, df_games = extract_all()
-    print("Colunas Twitch:", df_twitch.columns.tolist())
-    print("Colunas Esports:", df_esports.columns.tolist())
-    print("Colunas Games:", df_games.columns.tolist())
