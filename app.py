@@ -283,29 +283,44 @@ scatter = (
     })
 )
 
+top_jogos = (
+    scatter
+    .nlargest(5, "Horas Assistidas")["Jogo"]
+    .tolist()
+)
+
+scatter["Label"] = scatter["Jogo"].where(
+    scatter["Jogo"].isin(top_jogos),
+    ""
+)
+
 fig = px.scatter(
     scatter,
     x="Horas Assistidas",
     y="Premiações",
     color="Gênero",
     size="Torneios",
-    text="Jogo",
+    text="Label",
     hover_name="Jogo",
     log_x=True,
     log_y=True,
-    trendline="ols",
     size_max=40
 )
 
 fig.update_traces(
     textposition="top center",
     marker=dict(
-        line=dict(width=1, color="white")
+        line=dict(
+            width=1,
+            color="white"
+        )
     )
 )
 
 fig.update_layout(
     title="Audiência e Premiação dos eSports",
+    xaxis_title="Horas Assistidas",
+    yaxis_title="Premiações",
     legend_title="Gênero"
 )
 
