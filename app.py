@@ -268,9 +268,9 @@ with col3:
 # RELAÇÃO ENTRE AUDIÊNCIA E PREMIAÇÃO
 # =========================
 
-st.subheader("Heatmap dos 10 Maiores Jogos por Premiação e Audiência")
+st.subheader("Perfil dos 5 Principais Jogos")
 
-heatmap_df = (
+radar_df = (
     df_filtrado
     .groupby("Jogo", as_index=False)
     .agg({
@@ -280,49 +280,39 @@ heatmap_df = (
     })
 )
 
-top10 = (
-    heatmap_df
-    .sort_values("Horas Assistidas", ascending=False)
-    .head(10)
-    .copy()
+radar_df["Score"] = (
+    radar_df["Horas Assistidas"].rank(pct=True)
+    +
+    radar_df["Premiações"].rank(pct=True)
+    +
+    radar_df["Torneios"].rank(pct=True)
 )
 
-top10["Audiência"] = (
-    top10["Horas Assistidas"] /
-    top10["Horas Assistidas"].max()
-) * 100
+radar_df = radar_df.sort_values(
+    "Score",
+    ascending=False
+).head(5)
 
-top10["Premiações (%)"] = (
-    top10["Premiações"] /
-    top10["Premiações"].max()
-) * 100
+for coluna in ["Horas Assistidas", "Premiações", "Torneios"]:
+    radar_df[coluna] = (
+        radar_df[coluna]
+        / radar_df[coluna].max()
+        * 100
+    )
 
-top10["Torneios (%)"] = (
-    top10["Torneios"] /
-    top10["Torneios"].max()
-) * 100
-
-heatmap_data = (
-    top10[
-        ["Jogo", "Audiência", "Premiações (%)", "Torneios (%)"]
-    ]
-    .set_index("Jogo")
-)
-
-fig = px.imshow(
-    heatmap_data,
-    text_auto=".0f",
-    aspect="auto",
-    labels={
-        "x": "Métrica",
-        "y": "Jogo",
-        "color": "Índice"
-    }
-)
-
-fig.update_layout(
-    title="Top 10 Jogos — Comparação Normalizada (%)",
-    coloraxis_colorbar_title="Índice"
+fig = px.line_polar(
+    radar_df.melt(
+        id_vars="Jogo",
+        value_vars=[
+            "Horas Assistidas",
+            "Premiações",
+            "Torneios"
+        ]
+    ),
+    r="value",
+    theta="variable",
+    color="Jogo",
+    line_close=True
 )
 
 st.plotly_chart(fig, use_container_width=True)
