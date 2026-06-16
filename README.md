@@ -20,7 +20,7 @@ Análise crítica e seleção estratégica de dados.
 - [Dashboard](https://a3-bigdata.streamlit.app/)
 - [Documentação](https://projeto-esports.gitbook.io/a3-dados-esports)
 
-## Como Testar o Projeto no Colab
+## Como Rodar o Projeto no Colab
    
 - No menu lateral esquerdo do Google Colab, clique no ícone de Pasta (Arquivos).
 
