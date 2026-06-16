@@ -310,99 +310,98 @@ fig.update_layout(
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.subheader("Principais Insights")
+# =========================
+# VALIDAÇÃO DE HIPÓTESE: O QUE GERA MAIS GANHOS?
+# =========================
 
-insights = (
-    df_filtrado
-    .groupby("Jogo", as_index=False)
-    .agg({
-        "Horas Assistidas": "sum",
-        "Premiações": "sum",
-        "Torneios": "sum"
-    })
+st.subheader("Principais Insights & Validação de Hipóteses")
+
+df_hipotese = (
+    df_filtrado.groupby("Jogo", as_index=False)
+    .agg({"Horas Assistidas": "sum", "Premiações": "sum", "Torneios": "sum"})
+    .copy()
 )
 
-mais_assistido = insights.loc[
-    insights["Horas Assistidas"].idxmax()
-]
+df_hipotese = df_hipotese[df_hipotese["Horas Assistidas"] > 0]
 
-mais_premiado = insights.loc[
-    insights["Premiações"].idxmax()
-]
-
-mais_torneios = insights.loc[
-    insights["Torneios"].idxmax()
-]
-
-insights = insights[
-    insights["Horas Assistidas"] > 0
-].copy()
-
-insights["Premiação por 1M Horas"] = (
-    insights["Premiações"] /
-    insights["Horas Assistidas"]
-) * 1_000_000
-
-insights_relacao = insights[
-    insights["Horas Assistidas"] >= insights["Horas Assistidas"].quantile(0.25)
-]
-
-melhor_relacao = insights_relacao.loc[
-    insights_relacao["Premiação por 1M Horas"].idxmax()
-]
+corr_audiencia_ganhos = df_hipotese["Horas Assistidas"].corr(
+    df_hipotese["Premiações"]
+)
+corr_torneios_ganhos = df_hipotese["Torneios"].corr(df_hipotese["Premiações"])
 
 col1, col2 = st.columns(2)
 
 with col1:
     st.metric(
-        "🎮 Jogo Mais Assistido",
-        mais_assistido["Jogo"]
+        label="⚡ Força do Impacto da Audiência nos Ganhos",
+        value=f"{corr_audiencia_ganhos * 100:.1f}%",
+        help="Correlação linear entre Horas Assistidas e Premiações distribuídas.",
     )
-
-    st.caption(
-        f"{mais_assistido['Horas Assistidas']:,.0f} horas assistidas"
-    )
-
-    st.metric(
-        "💰 Jogo com Maior Premiação",
-        mais_premiado["Jogo"]
-    )
-
-    st.caption(
-        f"US$ {mais_premiado['Premiações']:,.0f}"
-    )
+    if corr_audiencia_ganhos > 0.7:
+        st.success(" **Impacto Crítico:** A audiência é um motor direto de receita.")
+    elif corr_audiencia_ganhos > 0.4:
+        st.warning(" **Impacto Moderado:** A audiência ajuda, mas não dita tudo.")
+    else:
+        st.error(" **Impacto Fraco:** Audiência e ganhos operam isolados.")
 
 with col2:
     st.metric(
-        "🏆 Jogo com Mais Torneios",
-        mais_torneios["Jogo"]
+        label="Impacto dos Torneios nos Ganhos",
+        value=f"{corr_torneios_ganhos * 100:.1f}%",
+        help="Correlação linear entre Quantidade de Torneios e Premiações distribuídas.",
     )
+    if corr_torneios_ganhos > 0.7:
+        st.success(
+            " **Impacto Crítico:** Fazer mais eventos dita diretamente o tamanho das premiações."
+        )
+    elif corr_torneios_ganhos > 0.4:
+        st.warning(
+            " **Impacto Moderado:** O volume de torneios importa, mas o prêmio depende de outros fatores."
+        )
+    else:
+        st.error(
+            " **Impacto Fraco:** Ter muitos torneios não garante premiações milionárias."
+        )
 
-    st.caption(
-        f"{mais_torneios['Torneios']:,.0f} torneios"
-    )
+mais_assistido = df_hipotese.loc[df_hipotese["Horas Assistidas"].idxmax()]
+mais_premiado = df_hipotese.loc[df_hipotese["Premiações"].idxmax()]
+mais_torneios = df_hipotese.loc[df_hipotese["Torneios"].idxmax()]
 
-    st.metric(
-        "📈 Melhor Relação Premiação/Audiência",
-        melhor_relacao["Jogo"]
-    )
-
-    st.caption(
-        f"US$ {melhor_relacao['Premiação por 1M Horas']:,.0f} por 1 milhão de horas assistidas"
-    )
+df_hipotese["Premiação por 1M Horas"] = (
+    df_hipotese["Premiações"] / df_hipotese["Horas Assistidas"]
+) * 1_000_000
+df_relacao_filtrada = df_hipotese[
+    df_hipotese["Horas Assistidas"] >= df_hipotese["Horas Assistidas"].quantile(0.25)
+]
+melhor_relacao = df_relacao_filtrada.loc[
+    df_relacao_filtrada["Premiação por 1M Horas"].idxmax()
+]
 
 st.markdown("---")
+st.markdown("### 📝 Diagnóstico do Mercado Competitivo")
+
+if corr_audiencia_ganhos > corr_torneios_ganhos:
+    conclusao_mercado = f"""
+    A análise matemática valida que **a audiência manda no jogo**. A correlação entre Horas Assistidas e Ganhos é de **{corr_audiencia_ganhos*100:.1f}%**, superando o impacto do volume de competições (**{corr_torneios_ganhos*100:.1f}%**). 
+    
+    Isso prova que o verdadeiro multiplicador financeiro no ecossistema de E-Sports não é a quantidade de campeonatos realizados, mas sim a capacidade do jogo de reter a atenção do público. Plataformas de streaming cheias atraem grandes patrocinadores e direitos de transmissão, inflando de forma exponencial as premiações das ligas principais (como vemos no caso de **{mais_premiado['Jogo']}**).
+    """
+else:
+    conclusao_mercado = f"""
+    A análise matemática valida que **o volume de eventos manda no jogo**. A correlação entre a Quantidade de Torneios e os Ganhos é de **{corr_torneios_ganhos*100:.1f}%**, superando o impacto da audiência pura (**{corr_audiencia_ganhos*100:.1f}%**). 
+    
+    Isso prova que uma cena competitiva capilarizada, ativa e com campeonatos recorrentes (liderada por títulos como **{mais_torneios['Jogo']}**) é o fator principal que movimenta a entrada de capital e a distribuição de prêmios no mercado, agindo de forma mais consistente do que picos de visualização em transmissões de entretenimento.
+    """
 
 st.info(
     f"""
-### Resumo do Período
+{conclusao_mercado}
 
-🎮 **{mais_assistido['Jogo']}** foi o jogo mais assistido, acumulando **{mais_assistido['Horas Assistidas']:,.0f} horas assistidas**.
+### 📊 Resumo de Destaques do Período Filtrado:
 
-💰 **{mais_premiado['Jogo']}** distribuiu o maior volume de premiações, totalizando **US$ {mais_premiado['Premiações']:,.0f}**.
-
-🏆 **{mais_torneios['Jogo']}** liderou em quantidade de torneios, com **{mais_torneios['Torneios']:,.0f} eventos realizados**.
-
-📈 Considerando a relação entre audiência e premiações, **{melhor_relacao['Jogo']}** apresentou o melhor desempenho, gerando aproximadamente **US$ {melhor_relacao['Premiação por 1M Horas']:,.0f}** em premiações para cada milhão de horas assistidas.
+* 🎮 **{mais_assistido['Jogo']}** foi o campeão de atenção, acumulando um montante impressionante de **{mais_assistido['Horas Assistidas']:,.0f} horas assistidas**.
+* 💰 **{mais_premiado['Jogo']}** consolidou-se como o ecossistema mais lucrativo para os competidores, distribuindo um total de **US$ {mais_premiado['Premiações']:,.0f}**.
+* 🏆 **{mais_torneios['Jogo']}** apresentou a comunidade mais ativa e pulverizada, registrando **{mais_torneios['Torneios']:,.0f} eventos oficiais**.
+* 📈 Fora os gigantes de massa, o título **{melhor_relacao['Jogo']}** obteve a melhor eficiência de conversão monetária, gerando aproximadamente **US$ {melhor_relacao['Premiação por 1M Horas']:,.0f}** em prêmios para cada 1 milhão de horas que a comunidade passou assistindo ao jogo.
 """
 )
