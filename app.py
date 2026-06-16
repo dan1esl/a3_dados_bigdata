@@ -268,82 +268,158 @@ with col3:
 # RELAÇÃO ENTRE AUDIÊNCIA E PREMIAÇÃO
 # =========================
 
-st.subheader("Relação entre Audiência e Premiação")
+st.subheader("Heatmap dos 10 Maiores Jogos por Premiação e Audiência")
 
-st.subheader("Premiação por Milhão de Horas Assistidas")
-
-eficiencia = (
+heatmap_df = (
     df_filtrado
-    .groupby(["Jogo"], as_index=False)
+    .groupby("Jogo", as_index=False)
     .agg({
         "Horas Assistidas": "sum",
-        "Premiações": "sum"
+        "Premiações": "sum",
+        "Torneios": "sum"
     })
 )
 
-eficiencia = eficiencia[
-    eficiencia["Horas Assistidas"] > 0
-]
-
-eficiencia["Premiação por 1M Horas"] = (
-    eficiencia["Premiações"] /
-    eficiencia["Horas Assistidas"]
-) * 1_000_000
-
-top_eficiencia = (
-    eficiencia
-    .sort_values("Premiação por 1M Horas", ascending=False)
-    .head(15)
-)
-
-fig = px.bar(
-    top_eficiencia,
-    x="Premiação por 1M Horas",
-    y="Jogo",
-    orientation="h",
-    text_auto=".2s",
-    color="Premiação por 1M Horas"
-)
-
-fig.update_layout(
-    yaxis={"categoryorder": "total ascending"},
-    xaxis_title="Premiação por 1 Milhão de Horas Assistidas",
-    yaxis_title="",
-    coloraxis_showscale=False
-)
-
-st.plotly_chart(fig, use_container_width=True)
-
-st.subheader("10 Maiores Jogos: Audiência x Premiação")
-
-comparativo = (
-    df_filtrado
-    .groupby(["Jogo"], as_index=False)
-    .agg({
-        "Horas Assistidas": "sum",
-        "Premiações": "sum"
-    })
-)
-
-top15 = (
-    comparativo
+top10 = (
+    heatmap_df
     .sort_values("Horas Assistidas", ascending=False)
     .head(10)
+    .copy()
 )
 
-fig = px.bar(
-    top15,
-    y="Jogo",
-    x=["Horas Assistidas", "Premiações"],
-    barmode="group",
-    orientation="h"
+top10["Audiência"] = (
+    top10["Horas Assistidas"] /
+    top10["Horas Assistidas"].max()
+) * 100
+
+top10["Premiações (%)"] = (
+    top10["Premiações"] /
+    top10["Premiações"].max()
+) * 100
+
+top10["Torneios (%)"] = (
+    top10["Torneios"] /
+    top10["Torneios"].max()
+) * 100
+
+heatmap_data = (
+    top10[
+        ["Jogo", "Audiência", "Premiações (%)", "Torneios (%)"]
+    ]
+    .set_index("Jogo")
+)
+
+fig = px.imshow(
+    heatmap_data,
+    text_auto=".0f",
+    aspect="auto",
+    labels={
+        "x": "Métrica",
+        "y": "Jogo",
+        "color": "Índice"
+    }
 )
 
 fig.update_layout(
-    yaxis={"categoryorder": "total ascending"},
-    xaxis_title="Valor",
-    yaxis_title="",
-    legend_title=""
+    title="Top 10 Jogos — Comparação Normalizada (%)",
+    coloraxis_colorbar_title="Índice"
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.subheader("Principais Insights")
+
+insights = (
+    df_filtrado
+    .groupby("Jogo", as_index=False)
+    .agg({
+        "Horas Assistidas": "sum",
+        "Premiações": "sum",
+        "Torneios": "sum"
+    })
+)
+
+mais_assistido = insights.loc[
+    insights["Horas Assistidas"].idxmax()
+]
+
+mais_premiado = insights.loc[
+    insights["Premiações"].idxmax()
+]
+
+mais_torneios = insights.loc[
+    insights["Torneios"].idxmax()
+]
+
+insights = insights[
+    insights["Horas Assistidas"] > 0
+].copy()
+
+insights["Premiação por 1M Horas"] = (
+    insights["Premiações"] /
+    insights["Horas Assistidas"]
+) * 1_000_000
+
+insights_relacao = insights[
+    insights["Horas Assistidas"] >= insights["Horas Assistidas"].quantile(0.25)
+]
+
+melhor_relacao = insights_relacao.loc[
+    insights_relacao["Premiação por 1M Horas"].idxmax()
+]
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.metric(
+        "🎮 Jogo Mais Assistido",
+        mais_assistido["Jogo"]
+    )
+
+    st.caption(
+        f"{mais_assistido['Horas Assistidas']:,.0f} horas assistidas"
+    )
+
+    st.metric(
+        "💰 Jogo com Maior Premiação",
+        mais_premiado["Jogo"]
+    )
+
+    st.caption(
+        f"US$ {mais_premiado['Premiações']:,.0f}"
+    )
+
+with col2:
+    st.metric(
+        "🏆 Jogo com Mais Torneios",
+        mais_torneios["Jogo"]
+    )
+
+    st.caption(
+        f"{mais_torneios['Torneios']:,.0f} torneios"
+    )
+
+    st.metric(
+        "📈 Melhor Relação Premiação/Audiência",
+        melhor_relacao["Jogo"]
+    )
+
+    st.caption(
+        f"US$ {melhor_relacao['Premiação por 1M Horas']:,.0f} por 1 milhão de horas assistidas"
+    )
+
+st.markdown("---")
+
+st.info(
+    f"""
+### Resumo do Período
+
+🎮 **{mais_assistido['Jogo']}** foi o jogo mais assistido, acumulando **{mais_assistido['Horas Assistidas']:,.0f} horas assistidas**.
+
+💰 **{mais_premiado['Jogo']}** distribuiu o maior volume de premiações, totalizando **US$ {mais_premiado['Premiações']:,.0f}**.
+
+🏆 **{mais_torneios['Jogo']}** liderou em quantidade de torneios, com **{mais_torneios['Torneios']:,.0f} eventos realizados**.
+
+📈 Considerando a relação entre audiência e premiações, **{melhor_relacao['Jogo']}** apresentou o melhor desempenho, gerando aproximadamente **US$ {melhor_relacao['Premiação por 1M Horas']:,.0f}** em premiações para cada milhão de horas assistidas.
+"""
+)
