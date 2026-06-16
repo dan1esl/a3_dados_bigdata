@@ -268,11 +268,14 @@ with col3:
 # RELAÇÃO ENTRE AUDIÊNCIA E PREMIAÇÃO
 # =========================
 
-st.subheader("Perfil dos 5 Principais Jogos")
+st.subheader("Mercado Competitivo dos Jogos")
 
-radar_df = (
+bubble = (
     df_filtrado
-    .groupby("Jogo", as_index=False)
+    .groupby(
+        ["Jogo", "Gênero"],
+        as_index=False
+    )
     .agg({
         "Horas Assistidas": "sum",
         "Premiações": "sum",
@@ -280,39 +283,29 @@ radar_df = (
     })
 )
 
-radar_df["Score"] = (
-    radar_df["Horas Assistidas"].rank(pct=True)
-    +
-    radar_df["Premiações"].rank(pct=True)
-    +
-    radar_df["Torneios"].rank(pct=True)
+bubble = bubble[
+    bubble["Horas Assistidas"] > 0
+]
+
+fig = px.scatter(
+    bubble,
+    x="Horas Assistidas",
+    y="Premiações",
+    size="Torneios",
+    color="Gênero",
+    hover_name="Jogo",
+    size_max=60,
+    log_x=True,
+    log_y=True,
+    labels={
+        "Horas Assistidas": "Audiência",
+        "Premiações": "Premiações (US$)",
+        "Torneios": "Quantidade de Torneios"
+    }
 )
 
-radar_df = radar_df.sort_values(
-    "Score",
-    ascending=False
-).head(5)
-
-for coluna in ["Horas Assistidas", "Premiações", "Torneios"]:
-    radar_df[coluna] = (
-        radar_df[coluna]
-        / radar_df[coluna].max()
-        * 100
-    )
-
-fig = px.line_polar(
-    radar_df.melt(
-        id_vars="Jogo",
-        value_vars=[
-            "Horas Assistidas",
-            "Premiações",
-            "Torneios"
-        ]
-    ),
-    r="value",
-    theta="variable",
-    color="Jogo",
-    line_close=True
+fig.update_layout(
+    height=700
 )
 
 st.plotly_chart(fig, use_container_width=True)
