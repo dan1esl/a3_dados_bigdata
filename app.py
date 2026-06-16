@@ -158,7 +158,6 @@ st.plotly_chart(fig, use_container_width=True)
 col1, col2 = st.columns(2)
 
 with col1:
-
     genero_view = (
         df_filtrado
         .groupby("Gênero", as_index=False)["Horas Assistidas"]
@@ -176,7 +175,6 @@ with col1:
     st.plotly_chart(fig, use_container_width=True)
 
 with col2:
-
     genero_earn = (
         df_filtrado
         .groupby("Gênero", as_index=False)["Premiações"]
@@ -194,74 +192,55 @@ with col2:
     st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# RANKING DE JOGOS
+# RANKING DE JOGOS (Alinhados pela hipótese de Ganhos)
 # =========================
 
 col1, col2, col3 = st.columns(3)
 
+top_games_base = (
+    df_filtrado
+    .groupby("Jogo", as_index=False)
+    .agg({
+        "Horas Assistidas": "sum",
+        "Premiações": "sum",
+        "Torneios": "sum"
+    })
+    .sort_values("Premiações", ascending=False)
+    .head(15)
+)
+
 with col1:
-
-    st.subheader("Jogos Mais Assistidos")
-
-    top_games = (
-        df_filtrado
-        .groupby("Jogo", as_index=False)
-        .agg({
-            "Horas Assistidas": "sum"
-        })
-        .sort_values("Horas Assistidas", ascending=False)
-        .head(15)
-    )
-
+    st.subheader("Jogos Maiores Premiações")
     fig = px.bar(
-        top_games,
+        top_games_base,
+        x="Premiações",
+        y="Jogo",
+        orientation="h"
+    )
+    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    st.plotly_chart(fig, use_container_width=True)
+
+with col2:
+    st.subheader("Audiência dos Jogos que Mais Pagam")
+    fig = px.bar(
+        top_games_base,
         x="Horas Assistidas",
         y="Jogo",
         orientation="h"
     )
 
+    fig.update_layout(yaxis={'categoryorder':'array', 'categoryarray': top_games_base['Jogo'][::-1]})
     st.plotly_chart(fig, use_container_width=True)
 
-with col2:
-
-    st.subheader("Jogos com Mais Torneios")
-
-    top_tournaments = (
-        df_filtrado
-        .groupby("Jogo", as_index=False)["Torneios"]
-        .sum()
-        .sort_values("Torneios", ascending=False)
-        .head(15)
-    )
-
+with col3:
+    st.subheader("Torneios dos Jogos que Mais Pagam")
     fig = px.bar(
-        top_tournaments,
+        top_games_base,
         x="Torneios",
         y="Jogo",
         orientation="h"
     )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-with col3:
-
-    st.subheader("Jogos com Maiores Premiações")
-
-    top_earnings = (
-        df_filtrado
-        .groupby("Jogo", as_index=False)["Premiações"]
-        .sum()
-        .sort_values("Premiações", ascending=False)
-        .head(15)
-    )
-
-    fig = px.bar(
-        top_earnings,
-        x="Premiações",
-        y="Jogo",
-        orientation="h"
-    )
-
+    fig.update_layout(yaxis={'categoryorder':'array', 'categoryarray': top_games_base['Jogo'][::-1]})
     st.plotly_chart(fig, use_container_width=True)
 
 # =========================
@@ -272,10 +251,7 @@ st.subheader("Mercado Competitivo dos Jogos")
 
 bubble = (
     df_filtrado
-    .groupby(
-        ["Jogo", "Gênero"],
-        as_index=False
-    )
+    .groupby(["Jogo", "Gênero"], as_index=False)
     .agg({
         "Horas Assistidas": "sum",
         "Premiações": "sum",
@@ -283,9 +259,7 @@ bubble = (
     })
 )
 
-bubble = bubble[
-    bubble["Horas Assistidas"] > 0
-]
+bubble = bubble[bubble["Horas Assistidas"] > 0]
 
 fig = px.scatter(
     bubble,
@@ -304,91 +278,57 @@ fig = px.scatter(
     }
 )
 
-fig.update_layout(
-    height=700
-)
-
+fig.update_layout(height=700)
 st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# VALIDAÇÃO DE HIPÓTESE: O QUE GERA MAIS GANHOS?
+# VALIDAÇÃO DE HIPÓTESE: MAIOR GANHO TRAZ MAIS AUDIÊNCIA?
 # =========================
 
-st.subheader("Principais Insights & Validação de Hipóteses")
+st.subheader("Validação de Hipótese: Maior ganho traz mais audiência?")
 
-# 1. Preparação e filtragem dos dados
 df_hipotese = (
     df_filtrado.groupby("Jogo", as_index=False)
     .agg({"Horas Assistidas": "sum", "Premiações": "sum", "Torneios": "sum"})
     .dropna()
 )
 
-# Mantém apenas registros com dados válidos para não quebrar os cálculos
 df_hipotese = df_hipotese[(df_hipotese["Horas Assistidas"] > 0) & (df_hipotese["Torneios"] > 0)]
 
 if df_hipotese.empty:
     st.warning("Não há dados suficientes para o período selecionado. Tente expandir o filtro de anos na barra lateral.")
 else:
-    # 2. Cálculo seguro das correlações (isolando colunas numéricas)
-    matriz_corr_local = df_hipotese[["Horas Assistidas", "Premiações", "Torneios"]].corr(numeric_only=True)
-    
-    corr_audiencia_ganhos = matriz_corr_local.loc["Horas Assistidas", "Premiações"] if "Horas Assistidas" in matriz_corr_local.index else 0.0
-    corr_torneios_ganhos = matriz_corr_local.loc["Torneios", "Premiações"] if "Torneios" in matriz_corr_local.index else 0.0
-    
-    corr_audiencia_ganhos = 0.0 if pd.isna(corr_audiencia_ganhos) else corr_audiencia_ganhos
-    corr_torneios_ganhos = 0.0 if pd.isna(corr_torneios_ganhos) else corr_torneios_ganhos
+    matriz_corr_local = df_hipotese[["Horas Assistidas", "Premiações"]].corr(numeric_only=True)
+    corr_ganhos_audiencia = matriz_corr_local.loc["Premiações", "Horas Assistidas"] if "Premiações" in matriz_corr_local.index else 0.0
+    corr_ganhos_audiencia = 0.0 if pd.isna(corr_ganhos_audiencia) else corr_ganhos_audiencia
 
-    # 3. Renderização dos blocos de métricas (Estatísticas de Impacto)
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns([1, 2])
 
     with col1:
         st.metric(
-            label="Força do Impacto da Audiência nos Ganhos",
-            value=f"{corr_audiencia_ganhos * 100:.1f}%",
-            help="Correlação linear entre Horas Assistidas e Premiações distribuídas."
+            label="Correlação: Ganhos vs. Audiência",
+            value=f"{corr_ganhos_audiencia * 100:.1f}%",
+            help="Mede se os jogos com maiores premiações tendem a ter proporcionalmente mais horas assistidas."
         )
-        if corr_audiencia_ganhos > 0.7:
-            st.success("Impacto Crítico: A audiência é um motor direto de receita.")
-        elif corr_audiencia_ganhos > 0.4:
-            st.warning("Impacto Moderado: A audiência ajuda, mas não dita tudo.")
-        else:
-            st.error("Impacto Fraco: Audiência e ganhos operam isolados.")
-
+    
     with col2:
-        st.metric(
-            label="Impacto dos Torneios nos Ganhos",
-            value=f"{corr_torneios_ganhos * 100:.1f}%",
-            help="Correlação linear entre Quantidade de Torneios e Premiações distribuídas."
-        )
-        if corr_torneios_ganhos > 0.7:
-            st.success("Impacto Crítico: Fazer mais eventos dita diretamente o tamanho das premiações.")
-        elif corr_torneios_ganhos > 0.4:
-            st.warning("Impacto Moderado: O volume de torneios importa, mas o prêmio depende de outros fatores.")
+        if corr_ganhos_audiencia > 0.7:
+            st.success("Hipótese Confirmada: Existe uma forte ligação direta. Dinheiro pesado e grandes audiências andam juntos no topo.")
+        elif corr_ganhos_audiencia > 0.4:
+            st.warning("Hipótese Parcial: O dinheiro ajuda a trazer público, mas existem exceções que bombam mesmo pagando menos.")
         else:
-            st.error("Impacto Fraco: Ter muitos torneios não garante premiações milionárias.")
+            st.error("Hipótese Rejeitada: O tamanho da premiação não dita o engajamento de tela do público.")
 
-    # 4. Identificação dos líderes absolutos e cálculos de eficiência
     mais_assistido = df_hipotese.loc[df_hipotese["Horas Assistidas"].idxmax()]
     mais_premiado = df_hipotese.loc[df_hipotese["Premiações"].idxmax()]
     mais_torneios = df_hipotese.loc[df_hipotese["Torneios"].idxmax()]
 
-    df_hipotese["Premiação por 1M Horas"] = (df_hipotese["Premiações"] / df_hipotese["Horas Assistidas"]) * 1_000_000
-    
-    q25 = df_hipotese["Horas Assistidas"].quantile(0.25)
-    df_relacao_filtrada = df_hipotese[df_hipotese["Horas Assistidas"] >= q25]
-    
-    if not df_relacao_filtrada.empty:
-        melhor_relacao = df_relacao_filtrada.loc[df_relacao_filtrada["Premiação por 1M Horas"].idxmax()]
-        texto_melhor_relacao = f"* **{melhor_relacao['Jogo']}** obteve a melhor eficiência de conversão monetária, gerando aproximadamente **US$ {melhor_relacao['Premiação por 1M Horas']:,.0f}** em prêmios para cada 1 milhão de horas assistidas pela comunidade."
-    else:
-        texto_melhor_relacao = ""
     st.info(
         f"""
     ### Resumo de Destaques do Período Filtrado:
 
     * **{mais_assistido['Jogo']}** possui o maior engajamento de visualizações com **{mais_assistido['Horas Assistidas']:,.0f} horas assistidas**.
-    * **{mais_premiado['Jogo']}** é como o ecossistema mais lucrativo para os competidores, distribuindo um total de **US$ {mais_premiado['Premiações']:,.0f}**.
+    * **{mais_premiado['Jogo']}** consolidou-se como o ecossistema mais lucrativo para os competidores, distribuindo um total de **US$ {mais_premiado['Premiações']:,.0f}**.
     * **{mais_torneios['Jogo']}** tem o maior número de torneios, registrando **{mais_torneios['Torneios']:,.0f} eventos oficiais**.
-    {texto_melhor_relacao}
     """
     )
