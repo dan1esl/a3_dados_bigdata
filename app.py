@@ -270,58 +270,80 @@ with col3:
 
 st.subheader("Relação entre Audiência e Premiação")
 
-scatter = (
+st.subheader("Premiação por Milhão de Horas Assistidas")
+
+eficiencia = (
     df_filtrado
-    .groupby(
-        ["Jogo", "Gênero"],
-        as_index=False
-    )
+    .groupby(["Jogo"], as_index=False)
     .agg({
         "Horas Assistidas": "sum",
-        "Premiações": "sum",
-        "Torneios": "sum"
+        "Premiações": "sum"
     })
 )
 
-top_jogos = (
-    scatter
-    .nlargest(5, "Horas Assistidas")["Jogo"]
-    .tolist()
+eficiencia = eficiencia[
+    eficiencia["Horas Assistidas"] > 0
+]
+
+eficiencia["Premiação por 1M Horas"] = (
+    eficiencia["Premiações"] /
+    eficiencia["Horas Assistidas"]
+) * 1_000_000
+
+top_eficiencia = (
+    eficiencia
+    .sort_values("Premiação por 1M Horas", ascending=False)
+    .head(15)
 )
 
-scatter["Label"] = scatter["Jogo"].where(
-    scatter["Jogo"].isin(top_jogos),
-    ""
-)
-
-fig = px.scatter(
-    scatter,
-    x="Horas Assistidas",
-    y="Premiações",
-    color="Gênero",
-    size="Torneios",
-    text="Label",
-    hover_name="Jogo",
-    log_x=True,
-    log_y=True,
-    size_max=40
-)
-
-fig.update_traces(
-    textposition="top center",
-    marker=dict(
-        line=dict(
-            width=1,
-            color="white"
-        )
-    )
+fig = px.bar(
+    top_eficiencia,
+    x="Premiação por 1M Horas",
+    y="Jogo",
+    orientation="h",
+    text_auto=".2s",
+    color="Premiação por 1M Horas"
 )
 
 fig.update_layout(
-    title="Audiência e Premiação dos eSports",
-    xaxis_title="Horas Assistidas",
-    yaxis_title="Premiações",
-    legend_title="Gênero"
+    yaxis={"categoryorder": "total ascending"},
+    xaxis_title="Premiação por 1 Milhão de Horas Assistidas",
+    yaxis_title="",
+    coloraxis_showscale=False
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.subheader("10 Maiores Jogos: Audiência x Premiação")
+
+comparativo = (
+    df_filtrado
+    .groupby(["Jogo"], as_index=False)
+    .agg({
+        "Horas Assistidas": "sum",
+        "Premiações": "sum"
+    })
+)
+
+top15 = (
+    comparativo
+    .sort_values("Horas Assistidas", ascending=False)
+    .head(10)
+)
+
+fig = px.bar(
+    top15,
+    y="Jogo",
+    x=["Horas Assistidas", "Premiações"],
+    barmode="group",
+    orientation="h"
+)
+
+fig.update_layout(
+    yaxis={"categoryorder": "total ascending"},
+    xaxis_title="Valor",
+    yaxis_title="",
+    legend_title=""
 )
 
 st.plotly_chart(fig, use_container_width=True)
