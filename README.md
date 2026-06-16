@@ -19,3 +19,17 @@ Análise crítica e seleção estratégica de dados.
 ## Links
 - [Dashboard](https://a3-bigdata.streamlit.app/)
 - [Documentação](https://projeto-esports.gitbook.io/a3-dados-esports)
+
+## Como Testar o Projeto no Colab
+   
+- No menu lateral esquerdo do Google Colab, clique no ícone de Pasta (Arquivos).
+
+- Clique no ícone de Fazer upload para o armazenamento de sessão (ícone com uma seta para cima).
+
+- Selecione os três arquivos .csv dentro da pasta [datasets](https://github.com/dan1esl/a3_dados_bigdata/tree/main/datasets) e faça o upload para o colab.
+
+- Antes de executar a célula de transformação, você precisa atualizar a chamada da função com o nome exato do arquivo enviado.
+
+- Após isso o código está pronto para ser executado completamente.
+
+---
