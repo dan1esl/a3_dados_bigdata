@@ -293,19 +293,3 @@ fig = px.scatter(
 )
 
 st.plotly_chart(fig, use_container_width=True)
-
-# =========================
-# QUALIDADE DOS JOGOS E AUDIÊNCIA
-# =========================
-
-st.subheader("Qualidade dos Jogos e Audiência")
-
-fig = px.scatter(
-    df_filtrado,
-    x="Nota Metacritic",
-    y="Horas Assistidas",
-    color="Gênero",
-    hover_name="Jogo"
-)
-
-st.plotly_chart(fig, use_container_width=True)
