@@ -289,7 +289,24 @@ fig = px.scatter(
     y="Premiações",
     color="Gênero",
     size="Torneios",
-    hover_name="Jogo"
+    text="Jogo",
+    hover_name="Jogo",
+    log_x=True,
+    log_y=True,
+    trendline="ols",
+    size_max=40
+)
+
+fig.update_traces(
+    textposition="top center",
+    marker=dict(
+        line=dict(width=1, color="white")
+    )
+)
+
+fig.update_layout(
+    title="Audiência e Premiação dos eSports",
+    legend_title="Gênero"
 )
 
 st.plotly_chart(fig, use_container_width=True)
