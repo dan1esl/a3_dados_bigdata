@@ -19,6 +19,7 @@ Análise crítica e seleção estratégica de dados.
 ## Links
 - [Dashboard](https://a3-bigdata.streamlit.app/)
 - [Documentação](https://projeto-esports.gitbook.io/a3-dados-esports)
+- [Drive com Slides](https://drive.google.com/drive/folders/1MUXk46q86LT0nM8iIxM4GlDKG_j5Kbl_)
 
 ## Como Rodar o Projeto no Colab
    
