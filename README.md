@@ -14,7 +14,7 @@ Análise crítica e seleção estratégica de dados.
 - Bianca de Oliveira Meneses 
 - Wendson Santos Pureza 
 - Enrique Silva dos Reis 
-- Vinicius de Jesus Rocha Reis 
+- Vinicius de Jesus Rocha Reis - Removido
 
 ## Links
 - [Dashboard](https://a3-bigdata.streamlit.app/)
